@@ -3,91 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Translucent Setlist</title>
+    <title>Setlist - Ultra Translucent</title>
     <style>
-        /* --- 全体の色設定 --- */
         :root { 
-            --accent: #ff4757; 
-            --text-main: #ffffff;
-            --bg-obs: rgba(0, 0, 0, 0.4); /* OBS時の背景（0.4 = 40%の半透明） */
-            --bg-card: rgba(255, 255, 255, 0.1); /* リスト項目の背景（10%の白） */
+            --accent-color: rgba(255, 71, 87, 0.6); /* アクティブ時の色（半透明） */
+            --text-color: #ffffff;
+            /* ↓ OBS時の全体背景（完全に透明） */
+            --bg-obs-main: transparent; 
+            /* ↓ 各項目の背景（5%の白：ほぼ透明） */
+            --bg-item: rgba(255, 255, 255, 0.05); 
+        }
+
+        /* OBSモード(?obs=1)の時は背景を完全に消す */
+        [data-mode="obs"] { 
+            background: transparent !important; 
         }
 
         body { 
             margin: 0; 
             padding: 20px; 
             font-family: 'Helvetica Neue', Arial, sans-serif; 
-            background: #222; /* 操作画面の背景 */
-            color: var(--text-main); 
+            background: #333; /* 操作用画面の背景 */
+            color: var(--text-color); 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
         }
 
-        /* --- ウィジェット本体（半透明設定） --- */
+        /* ウィジェット本体 */
         #widget-container { 
             width: 320px; 
-            background: var(--bg-obs); 
+            background: rgba(0, 0, 0, 0.1); /* 全体のごく薄い影 */
             border-radius: 15px; 
             overflow: hidden; 
-            border: 1px solid rgba(255,255,255,0.1); 
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            backdrop-filter: blur(4px); /* 背景を少しぼかすと文字が見やすくなります */
+            border: none;
         }
 
         /* NOW PLAYING エリア */
         #now-playing-area { 
-            background: linear-gradient(135deg, rgba(255, 71, 87, 0.8), rgba(255, 107, 129, 0.8)); 
+            background: linear-gradient(135deg, rgba(255, 71, 87, 0.4), rgba(255, 107, 129, 0.2)); 
             padding: 20px 15px; 
             text-align: center; 
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
-        #now-playing-label { font-size: 10px; text-transform: uppercase; letter-spacing: 3px; opacity: 0.9; margin-bottom: 5px; }
-        #current-title { font-size: 1.5em; font-weight: bold; text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
-        #current-range { font-size: 0.8em; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; margin-top: 5px; display: inline-block; }
+        #now-playing-label { font-size: 10px; letter-spacing: 3px; opacity: 0.7; margin-bottom: 5px; }
+        
+        /* 文字に強い影を付けて、背景が透明でも読みやすくする */
+        #current-title { 
+            font-size: 1.5em; 
+            font-weight: bold; 
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.8), -1px -1px 0px rgba(0,0,0,0.5); 
+        }
+        #current-range { 
+            font-size: 0.8em; 
+            background: rgba(0,0,0,0.3); 
+            padding: 2px 8px; 
+            border-radius: 4px; 
+            margin-top: 5px; 
+            display: inline-block; 
+        }
 
-        h2.list-header { font-size: 11px; text-align: center; color: rgba(255,255,255,0.5); margin: 15px 0 5px; letter-spacing: 2px; }
+        h2.list-header { font-size: 10px; text-align: center; color: rgba(255,255,255,0.3); margin: 15px 0 5px; }
         ul { list-style: none; padding: 10px; margin: 0; }
         
-        /* 各リスト項目（半透明） */
+        /* 各リスト項目 */
         li { 
             display: flex; 
             align-items: center; 
-            padding: 12px 10px; 
-            margin-bottom: 8px; 
-            background: var(--bg-card); 
+            padding: 10px 12px; 
+            margin-bottom: 6px; 
+            background: var(--bg-item); 
             border-radius: 8px; 
             transition: 0.3s; 
             cursor: pointer; 
-            border-left: 4px solid transparent; 
+            border: 1px solid rgba(255, 255, 255, 0.03);
         }
         
-        /* 選択中の項目を強調 */
+        /* 選択中の項目（文字以外を少しだけ色づける） */
         li.active { 
-            background: rgba(255, 71, 87, 0.4); 
-            border-left: 4px solid var(--accent); 
-            transform: scale(1.02); 
+            background: var(--accent-color); 
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
-        .time-col { font-size: 0.75em; color: rgba(255,255,255,0.7); width: 85px; flex-shrink: 0; }
-        .title-col { flex-grow: 1; font-size: 0.95em; color: #fff; font-weight: 500; }
-        .del-btn { width: 24px; height: 24px; background: rgba(255,255,255,0.15); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+        .time-col { 
+            font-size: 0.75em; 
+            color: rgba(255, 255, 255, 0.6); 
+            width: 80px; 
+            flex-shrink: 0; 
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .title-col { 
+            flex-grow: 1; 
+            font-size: 0.95em; 
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8); 
+        }
 
-        /* --- 操作パネル --- */
+        /* 削除ボタン（操作時のみ） */
+        .del-btn { 
+            width: 22px; height: 22px; 
+            background: rgba(255,255,255,0.1); 
+            color: rgba(255,255,255,0.5); border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 12px; 
+        }
+
+        /* --- 操作パネル (白い不透明なパネル) --- */
         #controls { margin-top: 20px; background: white; padding: 15px; border-radius: 12px; color: #333; width: 320px; box-sizing: border-box; }
-        .input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
-        .time-row { display: flex; gap: 8px; align-items: flex-end; }
-        .time-item { flex: 1; position: relative; }
-        .label { font-size: 11px; color: #888; margin-bottom: 4px; font-weight: bold; }
-        .input-wrapper { display: flex; align-items: center; gap: 2px; }
-        input[type="time"] { flex: 1; padding: 8px 4px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
-        .reset-time { width: 20px; height: 20px; background: #eee; border: none; border-radius: 4px; color: #888; cursor: pointer; }
-        input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        button.add-btn { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: var(--accent); color: white; }
+        .input-group { display: flex; flex-direction: column; gap: 8px; }
+        .time-row { display: flex; gap: 5px; align-items: center; }
+        .label { font-size: 11px; font-weight: bold; color: #666; margin-top: 5px; }
+        input[type="time"], input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .input-wrapper { display: flex; gap: 2px; flex: 1; }
+        .reset-time { width: 30px; background: #eee; border: none; border-radius: 4px; cursor: pointer; }
+        button.add-btn { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #ff4757; color: white; margin-top: 10px; }
         button.clear-btn { width: 100%; border: none; background: none; color: #999; font-size: 11px; cursor: pointer; margin-top: 10px; }
 
-        /* --- OBS用モード --- */
-        [data-mode="obs"] { background: transparent !important; }
-        [data-mode="obs"] #controls, [data-mode="obs"] .del-btn { display: none; }
+        /* OBS用の非表示設定 */
+        [data-mode="obs"] #controls, [data-mode="obs"] .del-btn { display: none !important; }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
@@ -100,22 +132,22 @@
             <div id="current-title">待機中...</div>
             <div id="current-range">READY</div>
         </div>
-        <h2 class="list-header">SCHEDULE / SONGS</h2>
+        <h2 class="list-header">SCHEDULE</h2>
         <ul id="list"></ul>
     </div>
 
     <div id="controls">
         <div class="input-group">
             <div class="time-row">
-                <div class="time-item">
+                <div style="flex:1">
                     <div class="label">開始</div>
                     <div class="input-wrapper">
                         <input type="time" id="startTime">
                         <button class="reset-time" onclick="document.getElementById('startTime').value=''">×</button>
                     </div>
                 </div>
-                <div style="padding-bottom:10px; color:#ccc;">~</div>
-                <div class="time-item">
+                <div style="margin-top:20px">~</div>
+                <div style="flex:1">
                     <div class="label">終了</div>
                     <div class="input-wrapper">
                         <input type="time" id="endTime">
@@ -123,13 +155,11 @@
                     </div>
                 </div>
             </div>
-            <div>
-                <div class="label">内容</div>
-                <input type="text" id="songInput" placeholder="曲名やコーナー名を入力">
-            </div>
+            <div class="label">曲名・内容</div>
+            <input type="text" id="songInput" placeholder="曲名を入力">
         </div>
         <button class="add-btn" onclick="addSchedule()">リストに追加</button>
-        <button class="clear-btn" onclick="clearAll()">リストを全消去</button>
+        <button class="clear-btn" onclick="clearAll()">全てリセット</button>
     </div>
 
     <script>
@@ -142,7 +172,6 @@
             messagingSenderId: "917897337856",
             appId: "1:917897337856:web:b776d59cd602cf0d298ce5"
         };
-
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         const listRef = db.ref('setlist');
@@ -178,7 +207,6 @@
             const curRange = document.getElementById('current-range');
             listEl.innerHTML = '';
             let anyActive = false;
-
             snapshot.forEach((child) => {
                 const data = child.val();
                 const li = document.createElement('li');
@@ -206,7 +234,7 @@
 
         function deleteItem(event, key, title) {
             event.stopPropagation();
-            if(confirm(`「${title}」を削除しますか？`)) listRef.child(key).remove();
+            if(confirm(`削除しますか？`)) listRef.child(key).remove();
         }
 
         function addSchedule() {
@@ -214,9 +242,7 @@
             const end = document.getElementById('endTime').value;
             const title = document.getElementById('songInput').value;
             if (!title) return alert("内容を入力してください");
-            const finalStart = (start && end) ? start : "";
-            const finalEnd = (start && end) ? end : "";
-            listRef.push({ start: finalStart, end: finalEnd, title, active: false });
+            listRef.push({ start: (start && end ? start : ""), end: (start && end ? end : ""), title, active: false });
             document.getElementById('songInput').value = '';
         }
 
