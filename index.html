@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Setlist - Opacity Fix</title>
+    <title>Setlist Pro - Complete Edition</title>
     <style>
         :root { 
             --accent-color: rgba(255, 71, 87, 0.7); 
             --text-color: #ffffff;
         }
 
-        /* OBSモード(?obs=1)設定 */
+        /* OBSモード(?obs=1)の設定 */
         [data-mode="obs"] { background: transparent !important; }
         [data-mode="obs"] #controls, [data-mode="obs"] .del-btn { display: none !important; }
 
@@ -25,47 +25,54 @@
         #widget-container { 
             width: 320px; 
             border-radius: 15px; overflow: hidden; 
-            background: rgba(0, 0, 0, 0.2); /* デフォルト値 */
-            transition: background 0.2s;
+            background: rgba(0, 0, 0, 0.2); 
+            transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         #now-playing-area { 
             padding: 20px 15px; text-align: center; 
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            background: linear-gradient(135deg, rgba(255, 71, 87, 0.4), rgba(255, 107, 129, 0.2)); 
+            background: linear-gradient(135deg, rgba(255, 71, 87, 0.5), rgba(255, 107, 129, 0.3)); 
         }
         #current-title { 
             font-size: 1.5em; font-weight: bold; 
             text-shadow: 2px 2px 5px rgba(0,0,0,0.9); 
+            margin: 5px 0;
         }
-        #current-range { font-size: 0.8em; background: rgba(0,0,0,0.4); padding: 2px 8px; border-radius: 4px; margin-top: 5px; display: inline-block; }
+        #current-range { font-size: 0.8em; background: rgba(0,0,0,0.4); padding: 2px 10px; border-radius: 4px; display: inline-block; }
 
         ul { list-style: none; padding: 10px; margin: 0; }
         li { 
-            display: flex; align-items: center; padding: 10px 12px; margin-bottom: 6px; 
+            display: flex; align-items: center; padding: 12px 10px; margin-bottom: 8px; 
             border-radius: 8px; background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer; transition: 0.2s;
         }
-        li.active { background: var(--accent-color) !important; border: 1px solid rgba(255, 255, 255, 0.3); }
-        .time-col { font-size: 0.75em; color: rgba(255, 255, 255, 0.7); width: 80px; flex-shrink: 0; }
-        .title-col { flex-grow: 1; font-size: 0.95em; text-shadow: 1px 1px 3px rgba(0,0,0,0.9); }
+        li.active { background: var(--accent-color) !important; border: 1px solid rgba(255, 255, 255, 0.4); transform: scale(1.02); }
+        .time-col { font-size: 0.75em; color: rgba(255, 255, 255, 0.8); width: 85px; flex-shrink: 0; font-weight: bold; }
+        .title-col { flex-grow: 1; font-size: 1.0em; text-shadow: 1px 1px 3px rgba(0,0,0,0.9); }
+        .del-btn { width: 24px; height: 24px; background: rgba(255,255,255,0.2); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
 
-        /* --- 操作パネル (白い箱) --- */
+        /* --- 操作パネル --- */
         #controls { 
             margin-top: 20px; background: white; padding: 20px; 
             border-radius: 12px; color: #333; width: 340px; box-sizing: border-box; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6); 
         }
-        .control-section { margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
-        .label-row { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 13px; margin-bottom: 8px; }
+        .control-section { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        .label-row { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 13px; margin-bottom: 10px; color: #555; }
         
-        /* スライダー */
-        input[type="range"] { width: 100%; height: 10px; cursor: pointer; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        input[type="time"], input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         
-        input[type="time"], input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; margin-bottom: 10px; }
-        .time-row { display: flex; gap: 5px; align-items: center; margin-bottom: 10px; }
-        button.add-btn { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #ff4757; color: white; }
-        button.clear-btn { width: 100%; border: none; background: none; color: #999; font-size: 11px; cursor: pointer; margin-top: 10px; text-decoration: underline; }
+        .time-input-group { display: flex; align-items: center; gap: 5px; margin-bottom: 10px; }
+        .time-box { flex: 1; display: flex; gap: 2px; }
+        .reset-btn { width: 30px; background: #eee; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px; }
+
+        button.add-btn { width: 100%; padding: 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #ff4757; color: white; font-size: 16px; transition: 0.2s; }
+        button.add-btn:active { transform: scale(0.98); background: #e84118; }
+        button.clear-btn { width: 100%; border: none; background: none; color: #aaa; font-size: 11px; cursor: pointer; margin-top: 15px; text-decoration: underline; }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
@@ -74,7 +81,7 @@
 
     <div id="widget-container">
         <div id="now-playing-area">
-            <div style="font-size:10px; opacity:0.7; letter-spacing:2px;">Now Playing</div>
+            <div style="font-size:10px; opacity:0.8; letter-spacing:2px;">NOW PLAYING</div>
             <div id="current-title">待機中...</div>
             <div id="current-range">READY</div>
         </div>
@@ -85,26 +92,33 @@
         <div class="control-section">
             <div class="label-row">
                 <span>背景の不透明度</span>
-                <span id="opacity-num" style="color:#ff4757">20%</span>
+                <span id="opacity-display" style="color:#ff4757">20%</span>
             </div>
-            <input type="range" id="opacityRange" min="0" max="100" value="20">
+            <input type="range" id="opacitySlider" min="0" max="100" value="20">
         </div>
 
-        <div class="control-section">
-            <div class="label-row">スケジュール追加</div>
-            <div class="time-row">
-                <input type="time" id="startTime" style="margin:0">
+        <div class="control-section" style="border:none">
+            <div class="label-row">リストに追加</div>
+            <div class="time-input-group">
+                <div class="time-box">
+                    <input type="time" id="startTime">
+                    <button class="reset-btn" onclick="document.getElementById('startTime').value=''">×</button>
+                </div>
                 <span>~</span>
-                <input type="time" id="endTime" style="margin:0">
+                <div class="time-box">
+                    <input type="time" id="endTime">
+                    <button class="reset-btn" onclick="document.getElementById('endTime').value=''">×</button>
+                </div>
             </div>
-            <input type="text" id="songInput" placeholder="曲名・コーナー名">
-            <button class="add-btn" onclick="addSchedule()">追加する</button>
+            <input type="text" id="songInput" placeholder="曲名やコーナー名を入力" style="margin-bottom:15px">
+            <button class="add-btn" onclick="addSchedule()">リストに追加する</button>
         </div>
         
-        <button class="clear-btn" onclick="clearAll()">リストを全消去</button>
+        <button class="clear-btn" onclick="clearAll()">全データをリセット</button>
     </div>
 
     <script>
+        // Firebase設定
         const firebaseConfig = {
             apiKey: "AIzaSyBprlYN69O3fMygI-EVG28FxoTXDQnVBog",
             authDomain: "my-setlist-c9b40.firebaseapp.com",
@@ -119,28 +133,56 @@
         const listRef = db.ref('setlist');
         const settingsRef = db.ref('settings');
 
+        // OBSモード判定
         if(window.location.search.includes('obs=1')) document.body.setAttribute('data-mode', 'obs');
 
-        // --- 不透明度スライダーの処理 ---
-        const opacitySlider = document.getElementById('opacityRange');
-        const opacityNum = document.getElementById('opacity-num');
+        // --- 不透明度スライダーの同期 ---
+        const slider = document.getElementById('opacitySlider');
+        const display = document.getElementById('opacity-display');
         const widget = document.getElementById('widget-container');
 
-        opacitySlider.addEventListener('input', (e) => {
+        slider.addEventListener('input', (e) => {
             const val = e.target.value;
-            opacityNum.innerText = val + "%";
-            settingsRef.update({ opacity: val }); // Firebaseへ保存
+            display.innerText = val + "%";
+            settingsRef.update({ opacity: val });
         });
 
         settingsRef.on('value', (snapshot) => {
             const data = snapshot.val();
             const val = (data && data.opacity !== undefined) ? data.opacity : 20;
-            opacitySlider.value = val;
-            opacityNum.innerText = val + "%";
+            slider.value = val;
+            display.innerText = val + "%";
             widget.style.backgroundColor = `rgba(0, 0, 0, ${val / 100})`;
         });
 
-        // --- セットリストのメイン機能 ---
+        // --- スケジュール追加機能 ---
+        function addSchedule() {
+            const start = document.getElementById('startTime').value;
+            const end = document.getElementById('endTime').value;
+            const title = document.getElementById('songInput').value;
+            
+            if (!title) { alert("内容を入力してください"); return; }
+
+            // 時間が両方入力されている場合のみ時間を登録、それ以外は空
+            const finalStart = (start && end) ? start : "";
+            const finalEnd = (start && end) ? end : "";
+
+            listRef.push({
+                start: finalStart,
+                end: finalEnd,
+                title: title,
+                active: false
+            }).then(() => {
+                // 成功したら入力欄をクリア
+                document.getElementById('songInput').value = '';
+                document.getElementById('startTime').value = '';
+                document.getElementById('endTime').value = '';
+            }).catch((err) => {
+                alert("エラーが発生しました: " + err);
+            });
+        }
+
+        // --- 表示同期 & 自動切替 ---
         setInterval(() => {
             const now = new Date();
             const nowTime = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
@@ -149,11 +191,15 @@
                 const updates = {};
                 snapshot.forEach((child) => {
                     const data = child.val();
-                    if (data.end && nowTime >= data.end) { listRef.child(child.key).remove(); return; }
-                    if (data.start && data.end) {
-                        if (nowTime >= data.start && nowTime < data.end && !data.active) {
-                            updates[child.key + '/active'] = true;
-                        }
+                    // 終了時刻を過ぎたら自動削除
+                    if (data.end && nowTime >= data.end) {
+                        listRef.child(child.key).remove();
+                    }
+                    // 開始時刻になったら自動アクティブ（他にアクティブがない場合のみ）
+                    else if (data.start && data.end && nowTime >= data.start && nowTime < data.end && !data.active) {
+                        let hasActive = false;
+                        snapshot.forEach(c => { if(c.val().active) hasActive = true; });
+                        if(!hasActive) updates[child.key + '/active'] = true;
                     }
                 });
                 if (Object.keys(updates).length > 0) listRef.update(updates);
@@ -166,6 +212,7 @@
             const curRange = document.getElementById('current-range');
             listEl.innerHTML = '';
             let anyActive = false;
+
             snapshot.forEach((child) => {
                 const data = child.val();
                 const li = document.createElement('li');
@@ -179,7 +226,7 @@
                 li.innerHTML = `
                     <div class="time-col">${timeStr}</div>
                     <div class="title-col">${data.title}</div>
-                    <div class="del-btn" onclick="event.stopPropagation(); listRef.child('${child.key}').remove();">×</div>
+                    <div class="del-btn" onclick="event.stopPropagation(); deleteItem('${child.key}')">×</div>
                 `;
                 li.onclick = () => {
                     const up = {};
@@ -191,16 +238,16 @@
             if (!anyActive) { curTitle.innerText = "待機中..."; curRange.innerText = "READY"; }
         });
 
-        function addSchedule() {
-            const start = document.getElementById('startTime').value;
-            const end = document.getElementById('endTime').value;
-            const title = document.getElementById('songInput').value;
-            if (!title) return alert("曲名を入れてね！");
-            listRef.push({ start: (start && end ? start : ""), end: (start && end ? end : ""), title, active: false });
-            document.getElementById('songInput').value = '';
+        function deleteItem(key) {
+            if(confirm("この項目を削除しますか？")) listRef.child(key).remove();
         }
 
-        function clearAll() { if(confirm("全部消すよ？")) listRef.remove(); }
+        function clearAll() {
+            if(confirm("全データを削除してリセットしますか？")) {
+                listRef.remove();
+                settingsRef.update({ opacity: 20 });
+            }
+        }
     </script>
 </body>
 </html>
