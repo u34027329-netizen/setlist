@@ -3,47 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Setlist Pro - Time Picker</title>
+    <title>Flexible Setlist</title>
     <style>
         :root { --accent: #ff4757; --bg: rgba(0, 0, 0, 0.95); }
         body { margin: 0; padding: 20px; font-family: 'Helvetica Neue', Arial, sans-serif; background: #222; color: white; display: flex; flex-direction: column; align-items: center; }
         
         #widget-container { width: 320px; background: var(--bg); border-radius: 15px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
         
-        /* NOW PLAYING */
         #now-playing-area { background: linear-gradient(135deg, var(--accent), #ff6b81); padding: 20px 15px; text-align: center; }
         #now-playing-label { font-size: 10px; text-transform: uppercase; letter-spacing: 3px; opacity: 0.8; margin-bottom: 5px; }
-        #current-title { font-size: 1.4em; font-weight: bold; word-break: break-all; }
+        #current-title { font-size: 1.4em; font-weight: bold; word-break: break-all; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
         #current-range { font-size: 0.8em; background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 4px; margin-top: 5px; display: inline-block; }
 
         h2.list-header { font-size: 11px; text-align: center; color: #777; margin: 15px 0 5px; letter-spacing: 2px; }
         ul { list-style: none; padding: 10px; margin: 0; }
         
-        li { display: flex; align-items: center; padding: 12px 10px; margin-bottom: 8px; background: rgba(255,255,255,0.05); border-radius: 8px; transition: 0.3s; cursor: pointer; border-left: 4px solid transparent; }
+        li { display: flex; align-items: center; padding: 12px 10px; margin-bottom: 8px; background: rgba(255,255,255,0.05); border-radius: 8px; transition: 0.3s; cursor: pointer; border-left: 4px solid transparent; position: relative; }
         li.active { background: rgba(255, 71, 87, 0.25); border-left: 4px solid var(--accent); transform: scale(1.02); }
+        
         .time-col { font-size: 0.75em; color: #999; width: 85px; flex-shrink: 0; }
         .title-col { flex-grow: 1; font-size: 0.95em; color: #ddd; word-break: break-all; padding-right: 10px; }
-        .del-btn { width: 24px; height: 24px; background: rgba(255,255,255,0.1); color: #aaa; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        
+        .del-btn { width: 24px; height: 24px; background: rgba(255,255,255,0.1); color: #aaa; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
 
-        /* 操作パネル */
         #controls { margin-top: 20px; background: white; padding: 15px; border-radius: 12px; color: #333; width: 320px; box-sizing: border-box; }
-        .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+        .input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+        .time-row { display: flex; gap: 8px; align-items: flex-end; }
+        .time-item { flex: 1; }
+        .label { font-size: 11px; color: #888; margin-bottom: 4px; font-weight: bold; }
         
-        /* ★時間入力の2つの欄 */
-        .time-label { font-size: 12px; font-weight: bold; color: #666; margin-bottom: 2px; }
-        .time-fields { display: flex; gap: 10px; margin-bottom: 10px; }
-        .field { flex: 1; }
-        
-        input[type="time"], input[type="text"] { 
-            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box; font-family: inherit;
-        }
+        input[type="time"], input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
 
         button { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-bottom: 8px; }
         .add-btn { background: var(--accent); color: white; }
         .clear-btn { background: #eee; color: #888; }
 
-        [data-mode="obs"] #controls { display: none; }
-        [data-mode="obs"] .del-btn { display: none; }
+        [data-mode="obs"] #controls, [data-mode="obs"] .del-btn { display: none; }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
@@ -54,33 +49,35 @@
         <div id="now-playing-area">
             <div id="now-playing-label">Now Playing</div>
             <div id="current-title">待機中...</div>
-            <div id="current-range">--:-- - --:--</div>
+            <div id="current-range">READY</div>
         </div>
-        <h2 class="list-header">SCHEDULE</h2>
+        <h2 class="list-header">SCHEDULE / SONGS</h2>
         <ul id="list"></ul>
     </div>
 
     <div id="controls">
         <div class="input-group">
-            <div class="time-fields">
-                <div class="field">
-                    <div class="time-label">開始時間</div>
+            <div class="time-row">
+                <div class="time-item">
+                    <div class="label">開始（任意）</div>
                     <input type="time" id="startTime">
                 </div>
-                <div class="field">
-                    <div class="time-label">終了時間</div>
+                <div style="padding-bottom:10px; color:#ccc;">~</div>
+                <div class="time-item">
+                    <div class="label">終了（任意）</div>
                     <input type="time" id="endTime">
                 </div>
             </div>
-            <div class="time-label">内容</div>
-            <input type="text" id="songInput" placeholder="曲名やコーナー名">
+            <div>
+                <div class="label">内容</div>
+                <input type="text" id="songInput" placeholder="曲名やコーナー名">
+            </div>
         </div>
-        <button class="add-btn" onclick="addSchedule()">予約を追加</button>
+        <button class="add-btn" onclick="addSchedule()">リストに追加</button>
         <button class="clear-btn" onclick="clearAll()">全消去</button>
     </div>
 
     <script>
-        // Firebase設定（既存のものを維持）
         const firebaseConfig = {
             apiKey: "AIzaSyBprlYN69O3fMygI-EVG28FxoTXDQnVBog",
             authDomain: "my-setlist-c9b40.firebaseapp.com",
@@ -97,7 +94,7 @@
 
         if(window.location.search.includes('obs=1')) document.body.setAttribute('data-mode', 'obs');
 
-        // 自動処理
+        // 自動チェックシステム
         setInterval(() => {
             const now = new Date();
             const nowTime = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
@@ -107,10 +104,12 @@
                 let needUpdate = false;
                 snapshot.forEach((child) => {
                     const data = child.val();
+                    // 終了時刻がある場合のみ自動削除
                     if (data.end && nowTime >= data.end) {
                         listRef.child(child.key).remove();
                         return;
                     }
+                    // 開始・終了両方ある場合のみ自動Active
                     if (data.start && data.end) {
                         const isScheduled = (nowTime >= data.start && nowTime < data.end);
                         if (isScheduled && !data.active) {
@@ -140,11 +139,14 @@
                 if (data.active) {
                     li.classList.add('active');
                     curTitle.innerText = data.title;
-                    curRange.innerText = `${data.start} - ${data.end}`;
+                    curRange.innerText = (data.start && data.end) ? `${data.start} - ${data.end}` : "FREE";
                     anyActive = true;
                 }
+
+                const timeDisplay = (data.start && data.end) ? `${data.start}-${data.end}` : `---`;
+
                 li.innerHTML = `
-                    <div class="time-col">${data.start}-${data.end}</div>
+                    <div class="time-col">${timeDisplay}</div>
                     <div class="title-col">${data.title}</div>
                     <div class="del-btn" onclick="deleteItem(event, '${child.key}', '${data.title}')">×</div>
                 `;
@@ -155,7 +157,7 @@
                 };
                 listEl.appendChild(li);
             });
-            if (!anyActive) { curTitle.innerText = "待機中..."; curRange.innerText = "--:-- - --:--"; }
+            if (!anyActive) { curTitle.innerText = "待機中..."; curRange.innerText = "READY"; }
         });
 
         function deleteItem(event, key, title) {
@@ -167,12 +169,18 @@
             const start = document.getElementById('startTime').value;
             const end = document.getElementById('endTime').value;
             const title = document.getElementById('songInput').value;
-            if (!start || !end || !title) return alert("全部入力してね！");
-            listRef.push({ start, end, title, active: false });
+            if (!title) return alert("内容を入力してください");
+            // 片方だけ入力されている場合は時間指定なしとして扱う（または両方必須にするロジックも可）
+            const finalStart = (start && end) ? start : "";
+            const finalEnd = (start && end) ? end : "";
+            
+            listRef.push({ start: finalStart, end: finalEnd, title, active: false });
             document.getElementById('songInput').value = '';
+            document.getElementById('startTime').value = '';
+            document.getElementById('endTime').value = '';
         }
 
-        function clearAll() { if(confirm("全部消去しますか？")) listRef.remove(); }
+        function clearAll() { if(confirm("リストを全て消去しますか？")) listRef.remove(); }
     </script>
 </body>
 </html>
