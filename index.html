@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Setlist Pro - Scrollable Edition</title>
+    <title>Setlist Pro - OBS Auto Scroll</title>
     <style>
-        :root { --accent-color: rgba(255, 71, 87, 0.7); --text-color: #ffffff; }
+        :root { --accent-color: rgba(255, 71, 87, 0.8); --text-color: #ffffff; }
         [data-mode="obs"] { background: transparent !important; }
         [data-mode="obs"] #controls, [data-mode="obs"] .del-btn { display: none !important; }
         
         body { margin: 0; padding: 20px; font-family: sans-serif; background: #1a1a1a; color: var(--text-color); display: flex; flex-direction: column; align-items: center; }
         
-        /* 全体コンテナ */
+        /* 全体コンテナ：OBSのソース設定に合わせて柔軟に伸び縮みするように設定 */
         #widget-container { 
             width: 340px; 
-            max-height: 550px; /* ウィジェット全体の最大高さ */
+            height: 90vh; /* 画面の高さに合わせる */
+            max-height: 800px;
             border-radius: 12px; 
             overflow: hidden; 
             background: rgba(0, 0, 0, 0.2); 
@@ -23,48 +24,49 @@
             flex-direction: column;
         }
 
-        /* 現在の曲表示（固定） */
         #now-playing-area { 
             flex-shrink: 0;
             padding: 15px; 
             text-align: center; 
-            background: linear-gradient(135deg, rgba(255, 71, 87, 0.4), rgba(255, 107, 129, 0.2)); 
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1); 
+            background: linear-gradient(135deg, rgba(255, 71, 87, 0.5), rgba(255, 107, 129, 0.3)); 
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2); 
         }
 
-        /* リスト部分（ここがスクロールする） */
+        /* スクロールエリア */
         #list-scroll-area {
             overflow-y: auto;
             flex-grow: 1;
             padding: 10px;
+            scroll-behavior: smooth; /* スムーズに動くようにする */
         }
 
-        /* スクロールバーのデザイン（OBSでも目立たないように） */
-        #list-scroll-area::-webkit-scrollbar { width: 5px; }
-        #list-scroll-area::-webkit-scrollbar-track { background: transparent; }
-        #list-scroll-area::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        /* スクロールバーを完全に隠す（OBSで見栄えを良くするため） */
+        #list-scroll-area::-webkit-scrollbar { display: none; }
 
-        ul { list-style: none; padding: 0; margin: 0; }
+        ul { list-style: none; padding: 0; margin: 0; padding-bottom: 100px; } /* 下に余白を作る */
         li { 
-            display: flex; align-items: center; padding: 12px; margin-bottom: 6px; 
+            display: flex; align-items: center; padding: 12px; margin-bottom: 8px; 
             border-radius: 8px; background: rgba(255, 255, 255, 0.05); 
             border: 1px solid rgba(255, 255, 255, 0.1); 
-            transition: 0.2s; cursor: pointer; position: relative; 
+            transition: all 0.3s ease; cursor: pointer; position: relative; 
         }
-        li.active { background: var(--accent-color) !important; border: 1px solid rgba(255, 255, 255, 0.4); transform: scale(0.98); }
-        li.expired { opacity: 0.2; filter: grayscale(1); }
+        li.active { 
+            background: var(--accent-color) !important; 
+            border: 1px solid rgba(255, 255, 255, 0.5); 
+            transform: scale(1.02);
+            box-shadow: 0 0 15px rgba(255, 71, 87, 0.4);
+        }
+        li.expired { opacity: 0.15; filter: grayscale(1); }
         
-        .time-col { font-size: 0.65em; width: 90px; opacity: 0.8; font-weight: bold; line-height: 1.2; }
-        .title-col { flex-grow: 1; font-size: 0.95em; font-weight: bold; padding-right: 25px; word-break: break-all; }
-        .del-btn { position: absolute; right: 8px; cursor: pointer; color: #ff4757; font-weight: bold; font-size: 18px; z-index: 10; }
+        .time-col { font-size: 0.65em; width: 90px; opacity: 0.8; font-weight: bold; }
+        .title-col { flex-grow: 1; font-size: 0.95em; font-weight: bold; word-break: break-all; }
+        .del-btn { position: absolute; right: 8px; color: #ff4757; font-weight: bold; font-size: 18px; }
 
-        /* 操作パネル（配信画面には映らない部分） */
-        #controls { margin-top: 20px; background: #fff; padding: 20px; border-radius: 10px; color: #333; width: 340px; box-sizing: border-box; }
+        #controls { margin: 20px 0; background: #fff; padding: 20px; border-radius: 10px; color: #333; width: 340px; box-sizing: border-box; }
         .input-group { margin-bottom: 10px; }
-        label { display: block; font-size: 11px; font-weight: bold; color: #666; margin-bottom: 3px; }
-        input[type="datetime-local"], input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
-        input[type="range"] { width: 100%; }
-        .btn-add { width: 100%; background: #ff4757; color: #fff; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 5px; }
+        label { display: block; font-size: 11px; font-weight: bold; color: #666; }
+        input[type="datetime-local"], input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        .btn-add { width: 100%; background: #ff4757; color: #fff; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
@@ -82,21 +84,12 @@
     </div>
 
     <div id="controls">
-        <div class="input-group">
-            <label>不透明度</label>
-            <input type="range" id="opacitySlider" min="0" max="100" value="20">
-        </div>
-        <div class="input-group">
-            <label>★内容（必須）</label>
-            <input type="text" id="songInput" placeholder="曲名などを入力">
-        </div>
-        <div style="background: #f4f4f4; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
-            <label>📅 時間指定（任意）</label>
-            <input type="datetime-local" id="startDT" style="margin-bottom:5px">
-            <input type="datetime-local" id="endDT">
-        </div>
-        <button class="btn-add" onclick="addSchedule()">リストに追加</button>
-        <button onclick="clearAll()" style="width:100%; background:none; border:none; color:#ccc; font-size:10px; margin-top:15px; cursor:pointer; text-decoration:underline;">リセット</button>
+        <div class="input-group"><label>不透明度</label><input type="range" id="opacitySlider" min="0" max="100" value="20"></div>
+        <div class="input-group"><label>内容</label><input type="text" id="songInput"></div>
+        <div class="input-group"><label>開始</label><input type="datetime-local" id="startDT"></div>
+        <div class="input-group"><label>終了</label><input type="datetime-local" id="endDT"></div>
+        <button class="btn-add" onclick="addSchedule()">追加</button>
+        <button onclick="clearAll()" style="width:100%; border:none; color:#ccc; font-size:10px; margin-top:10px; background:none; cursor:pointer;">全消去</button>
     </div>
 
     <script>
@@ -124,45 +117,37 @@
         document.getElementById('opacitySlider').oninput = (e) => settingsRef.update({ opacity: e.target.value });
 
         function addSchedule() {
-            const titleVal = document.getElementById('songInput').value.trim();
-            if (!titleVal) return;
-
-            const payload = { title: titleVal, manualActive: false };
-            const s = document.getElementById('startDT').value;
-            const e = document.getElementById('endDT').value;
-            if (s) payload.startTime = new Date(s).getTime();
-            if (e) payload.endTime = new Date(e).getTime();
-
-            listRef.push(payload).then(() => {
-                document.getElementById('songInput').value = '';
-                document.getElementById('startDT').value = '';
-                document.getElementById('endDT').value = '';
+            const title = document.getElementById('songInput').value;
+            if (!title) return;
+            const s = document.getElementById('startDT').value, e = document.getElementById('endDT').value;
+            listRef.push({
+                title, 
+                startTime: s ? new Date(s).getTime() : null,
+                endTime: e ? new Date(e).getTime() : null,
+                manualActive: false
             });
+            document.getElementById('songInput').value = '';
         }
 
         listRef.on('value', snapshot => {
             const listEl = document.getElementById('list');
             listEl.innerHTML = '';
-            let activeData = null;
+            let activeItem = null;
             const now = Date.now();
 
             snapshot.forEach(child => {
                 const data = child.val();
                 const li = document.createElement('li');
                 let isActive = data.manualActive || (data.startTime && data.endTime && now >= data.startTime && now < data.endTime);
-
-                if (isActive) { li.classList.add('active'); activeData = data; }
+                
+                if (isActive) { li.classList.add('active'); activeItem = {key: child.key, data: data, el: li}; }
                 if (data.endTime && now >= data.endTime) li.classList.add('expired');
 
-                const timeStr = (data.startTime && data.endTime) ? 
-                    `${formatT(data.startTime, true)}<br>〜${formatT(data.endTime, true)}` : "FREE";
-
                 li.innerHTML = `
-                    <div class="time-col">${timeStr}</div>
+                    <div class="time-col">${data.startTime ? formatT(data.startTime,true)+'<br>〜'+formatT(data.endTime,true) : 'FREE'}</div>
                     <div class="title-col">${data.title}</div>
                     <div class="del-btn" onclick="event.stopPropagation(); listRef.child('${child.key}').remove();">×</div>
                 `;
-
                 li.onclick = () => {
                     const up = {};
                     snapshot.forEach(c => up[c.key + '/manualActive'] = (c.key === child.key));
@@ -171,23 +156,27 @@
                 listEl.appendChild(li);
             });
 
-            if (activeData) {
-                document.getElementById('current-title').innerText = activeData.title;
-                document.getElementById('current-range').innerText = activeData.startTime ? `${formatT(activeData.startTime)}〜${formatT(activeData.endTime)}` : "MANUAL";
+            if (activeItem) {
+                document.getElementById('current-title').innerText = activeItem.data.title;
+                document.getElementById('current-range').innerText = activeItem.data.startTime ? formatT(activeItem.data.startTime)+'〜'+formatT(activeItem.data.endTime) : "MANUAL";
+                // 【重要】アクティブな項目まで自動スクロール
+                setTimeout(() => {
+                    activeItem.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
             } else {
                 document.getElementById('current-title').innerText = "待機中...";
                 document.getElementById('current-range').innerText = "READY";
             }
         });
 
-        function formatT(ms, full = false) {
+        function formatT(ms, f=false) {
             const d = new Date(ms);
-            const h = String(d.getHours()).padStart(2, '0'), m = String(d.getMinutes()).padStart(2, '0');
-            return full ? `${d.getMonth()+1}/${d.getDate()} ${h}:${m}` : `${h}:${m}`;
+            const h = String(d.getHours()).padStart(2,'0'), m = String(d.getMinutes()).padStart(2,'0');
+            return f ? `${d.getMonth()+1}/${d.getDate()} ${h}:${m}` : `${h}:${m}`;
         }
-
-        function clearAll() { if(confirm("消去？")) listRef.remove(); }
+        function clearAll() { if(confirm("リセット？")) listRef.remove(); }
         setInterval(() => { listRef.once('value', () => {}); }, 5000);
     </script>
 </body>
 </html>
+
