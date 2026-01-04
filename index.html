@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Setlist Pro - Ultimate Stable</title>
+    <title>Setlist Pro - Perfect Stable</title>
     <style>
         :root { --accent-color: rgba(255, 71, 87, 0.7); --text-color: #ffffff; }
         [data-mode="obs"] { background: transparent !important; }
@@ -19,15 +19,15 @@
         ul { list-style: none; padding: 10px; margin: 0; }
         li { display: flex; align-items: center; padding: 12px; margin-bottom: 6px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); transition: 0.2s; cursor: pointer; position: relative; }
         li.active { background: var(--accent-color) !important; border: 1px solid rgba(255, 255, 255, 0.4); transform: scale(1.02); }
-        li.expired { opacity: 0.3; filter: grayscale(0.8); }
+        li.expired { opacity: 0.2; filter: grayscale(1); }
         
         .time-col { font-size: 0.65em; width: 90px; opacity: 0.8; font-weight: bold; line-height: 1.2; }
-        .title-col { flex-grow: 1; font-size: 0.95em; font-weight: bold; padding-right: 20px; }
+        .title-col { flex-grow: 1; font-size: 0.95em; font-weight: bold; padding-right: 25px; }
         .del-btn { position: absolute; right: 8px; cursor: pointer; color: #ff4757; font-weight: bold; font-size: 18px; z-index: 10; }
 
         #controls { margin-top: 20px; background: #fff; padding: 20px; border-radius: 10px; color: #333; width: 340px; box-sizing: border-box; }
-        .input-group { margin-bottom: 12px; }
-        label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 4px; color: #666; }
+        .input-group { margin-bottom: 10px; }
+        label { display: block; font-size: 11px; font-weight: bold; color: #666; margin-bottom: 3px; }
         input[type="datetime-local"], input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
         input[type="range"] { width: 100%; }
         .btn-add { width: 100%; background: #ff4757; color: #fff; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 5px; }
@@ -47,29 +47,27 @@
 
     <div id="controls">
         <div class="input-group">
-            <label>ボックスの不透明度</label>
+            <label>不透明度</label>
             <input type="range" id="opacitySlider" min="0" max="100" value="20">
         </div>
         
         <div class="input-group">
-            <label>内容（曲名など）</label>
-            <input type="text" id="songInput" placeholder="ここに入力して追加">
+            <label>★内容（必須）</label>
+            <input type="text" id="songInput" placeholder="曲名やコーナー名を入力">
         </div>
 
-        <div style="background: #f9f9f9; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
-            <label style="color:#ff4757">📅 時間指定（任意）</label>
+        <div style="background: #f4f4f4; padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px dashed #ccc;">
+            <label style="color:#666">📅 時間指定（空欄OK）</label>
             <div class="input-group">
-                <label>開始</label>
                 <input type="datetime-local" id="startDT">
             </div>
             <div class="input-group">
-                <label>終了</label>
                 <input type="datetime-local" id="endDT">
             </div>
         </div>
 
         <button class="btn-add" onclick="addSchedule()">リストに追加する</button>
-        <button onclick="clearAll()" style="width:100%; background:none; border:none; color:#ccc; font-size:10px; margin-top:15px; cursor:pointer;">全データをリセット</button>
+        <button onclick="clearAll()" style="width:100%; background:none; border:none; color:#ccc; font-size:10px; margin-top:15px; cursor:pointer; text-decoration: underline;">全消去リセット</button>
     </div>
 
     <script>
@@ -89,7 +87,7 @@
 
         if(window.location.search.includes('obs=1')) document.body.setAttribute('data-mode', 'obs');
 
-        // 不透明度
+        // 不透明度同期
         settingsRef.on('value', snap => {
             const val = (snap.val() && snap.val().opacity !== undefined) ? snap.val().opacity : 20;
             document.getElementById('widget-container').style.backgroundColor = `rgba(0, 0, 0, ${val / 100})`;
@@ -97,39 +95,40 @@
         });
         document.getElementById('opacitySlider').oninput = (e) => settingsRef.update({ opacity: e.target.value });
 
-        // 追加機能（最重要）
+        // 追加機能
         function addSchedule() {
-            const titleInput = document.getElementById('songInput');
-            const startInput = document.getElementById('startDT');
-            const endInput = document.getElementById('endDT');
+            const titleVal = document.getElementById('songInput').value.trim();
+            const startVal = document.getElementById('startDT').value;
+            const endVal = document.getElementById('endDT').value;
 
-            if (!titleInput.value.trim()) {
+            if (!titleVal) {
                 alert("内容を入力してください");
                 return;
             }
 
+            // オブジェクトを一度空で作る
             const payload = {
-                title: titleInput.value,
-                startTime: startInput.value ? new Date(startInput.value).getTime() : null,
-                endTime: endInput.value ? new Date(endInput.value).getTime() : null,
-                manualActive: false,
-                timestamp: Date.now() // 並び替え用
+                title: titleVal,
+                manualActive: false
             };
 
-            listRef.push(payload)
-                .then(() => {
-                    titleInput.value = '';
-                    startInput.value = '';
-                    endInput.value = '';
-                })
-                .catch(err => alert("送信エラー: " + err.message));
+            // 入力がある場合のみミリ秒を追加
+            if (startVal) payload.startTime = new Date(startVal).getTime();
+            if (endVal) payload.endTime = new Date(endVal).getTime();
+
+            // Firebaseへ送信
+            listRef.push(payload).then(() => {
+                document.getElementById('songInput').value = '';
+                document.getElementById('startDT').value = '';
+                document.getElementById('endDT').value = '';
+            }).catch(e => console.error("Firebase Error:", e));
         }
 
-        // 表示・自動判定
+        // 表示・リアルタイム更新
         listRef.on('value', snapshot => {
             const listEl = document.getElementById('list');
             listEl.innerHTML = '';
-            let currentActiveItem = null;
+            let activeData = null;
             const now = Date.now();
 
             snapshot.forEach(child => {
@@ -138,57 +137,60 @@
                 
                 // アクティブ判定
                 let isActive = false;
-                if (data.manualActive) isActive = true;
-                else if (data.startTime && data.endTime && now >= data.startTime && now < data.endTime) isActive = true;
+                if (data.manualActive) {
+                    isActive = true;
+                } else if (data.startTime && data.endTime) {
+                    if (now >= data.startTime && now < data.endTime) isActive = true;
+                }
 
                 if (isActive) {
                     li.classList.add('active');
-                    currentActiveItem = data;
+                    activeData = data;
                 }
 
+                // 期限切れ
                 if (data.endTime && now >= data.endTime) li.classList.add('expired');
 
-                let timeDisplay = data.startTime && data.endTime ? 
+                const timeStr = (data.startTime && data.endTime) ? 
                     `${formatTime(data.startTime, true)}<br>〜${formatTime(data.endTime, true)}` : "FREE";
 
                 li.innerHTML = `
-                    <div class="time-col">${timeDisplay}</div>
+                    <div class="time-col">${timeStr}</div>
                     <div class="title-col">${data.title}</div>
                     <div class="del-btn" onclick="event.stopPropagation(); listRef.child('${child.key}').remove();">×</div>
                 `;
 
                 li.onclick = () => {
-                    const updates = {};
-                    snapshot.forEach(c => updates[c.key + '/manualActive'] = (c.key === child.key));
-                    listRef.update(updates);
+                    const up = {};
+                    snapshot.forEach(c => up[c.key + '/manualActive'] = (c.key === child.key));
+                    listRef.update(up);
                 };
 
                 listEl.appendChild(li);
             });
 
-            if (currentActiveItem) {
-                document.getElementById('current-title').innerText = currentActiveItem.title;
-                document.getElementById('current-range').innerText = currentActiveItem.startTime ? 
-                    formatTime(currentActiveItem.startTime) + " 〜 " + formatTime(currentActiveItem.endTime) : "MANUAL MODE";
+            // メイン表示
+            if (activeData) {
+                document.getElementById('current-title').innerText = activeData.title;
+                document.getElementById('current-range').innerText = activeData.startTime ? 
+                    `${formatTime(activeData.startTime)} 〜 ${formatTime(activeData.endTime)}` : "MANUAL";
             } else {
                 document.getElementById('current-title').innerText = "待機中...";
                 document.getElementById('current-range').innerText = "READY";
             }
         });
 
-        function formatTime(ms, short = false) {
-            if (!ms) return "";
+        function formatTime(ms, isList = false) {
             const d = new Date(ms);
-            const m = d.getMonth() + 1;
-            const day = d.getDate();
             const h = String(d.getHours()).padStart(2, '0');
-            const min = String(d.getMinutes()).padStart(2, '0');
-            return short ? `${m}/${day} ${h}:${min}` : `${h}:${min}`;
+            const m = String(d.getMinutes()).padStart(2, '0');
+            const date = `${d.getMonth()+1}/${d.getDate()}`;
+            return isList ? `${date} ${h}:${m}` : `${h}:${m}`;
         }
 
         function clearAll() { if(confirm("全て消去しますか？")) listRef.remove(); }
         
-        // 5秒ごとに画面を更新して自動判定
+        // 5秒おきに判定再計算
         setInterval(() => { listRef.once('value', () => {}); }, 5000);
     </script>
 </body>
