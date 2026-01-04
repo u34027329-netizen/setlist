@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flexible Setlist</title>
+    <title>Setlist Pro - Flexible Time</title>
     <style>
         :root { --accent: #ff4757; --bg: rgba(0, 0, 0, 0.95); }
         body { margin: 0; padding: 20px; font-family: 'Helvetica Neue', Arial, sans-serif; background: #222; color: white; display: flex; flex-direction: column; align-items: center; }
@@ -23,20 +23,27 @@
         
         .time-col { font-size: 0.75em; color: #999; width: 85px; flex-shrink: 0; }
         .title-col { flex-grow: 1; font-size: 0.95em; color: #ddd; word-break: break-all; padding-right: 10px; }
-        
         .del-btn { width: 24px; height: 24px; background: rgba(255,255,255,0.1); color: #aaa; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
 
         #controls { margin-top: 20px; background: white; padding: 15px; border-radius: 12px; color: #333; width: 320px; box-sizing: border-box; }
         .input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+        
+        /* 時刻入力欄とクリアボタンのレイアウト */
         .time-row { display: flex; gap: 8px; align-items: flex-end; }
-        .time-item { flex: 1; }
+        .time-item { flex: 1; position: relative; }
         .label { font-size: 11px; color: #888; margin-bottom: 4px; font-weight: bold; }
         
-        input[type="time"], input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+        .input-wrapper { display: flex; align-items: center; gap: 2px; }
+        input[type="time"] { flex: 1; padding: 8px 4px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; font-family: inherit; }
+        
+        /* 選択解除ボタン */
+        .reset-time { width: 20px; height: 20px; background: #eee; border: none; border-radius: 4px; color: #888; cursor: pointer; font-size: 12px; padding: 0; }
+        .reset-time:hover { background: #ddd; color: #333; }
 
-        button { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-bottom: 8px; }
-        .add-btn { background: var(--accent); color: white; }
-        .clear-btn { background: #eee; color: #888; }
+        input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+
+        button.add-btn { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-bottom: 8px; background: var(--accent); color: white; }
+        button.clear-btn { width: 100%; padding: 8px; border: none; border-radius: 6px; cursor: pointer; background: #f0f0f0; color: #999; font-size: 12px; }
 
         [data-mode="obs"] #controls, [data-mode="obs"] .del-btn { display: none; }
     </style>
@@ -59,13 +66,19 @@
         <div class="input-group">
             <div class="time-row">
                 <div class="time-item">
-                    <div class="label">開始（任意）</div>
-                    <input type="time" id="startTime">
+                    <div class="label">開始</div>
+                    <div class="input-wrapper">
+                        <input type="time" id="startTime">
+                        <button class="reset-time" onclick="document.getElementById('startTime').value=''">×</button>
+                    </div>
                 </div>
                 <div style="padding-bottom:10px; color:#ccc;">~</div>
                 <div class="time-item">
-                    <div class="label">終了（任意）</div>
-                    <input type="time" id="endTime">
+                    <div class="label">終了</div>
+                    <div class="input-wrapper">
+                        <input type="time" id="endTime">
+                        <button class="reset-time" onclick="document.getElementById('endTime').value=''">×</button>
+                    </div>
                 </div>
             </div>
             <div>
@@ -74,7 +87,7 @@
             </div>
         </div>
         <button class="add-btn" onclick="addSchedule()">リストに追加</button>
-        <button class="clear-btn" onclick="clearAll()">全消去</button>
+        <button class="clear-btn" onclick="clearAll()">全消去（リセット）</button>
     </div>
 
     <script>
@@ -94,7 +107,7 @@
 
         if(window.location.search.includes('obs=1')) document.body.setAttribute('data-mode', 'obs');
 
-        // 自動チェックシステム
+        // 自動チェックシステム（1秒毎）
         setInterval(() => {
             const now = new Date();
             const nowTime = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
@@ -104,12 +117,10 @@
                 let needUpdate = false;
                 snapshot.forEach((child) => {
                     const data = child.val();
-                    // 終了時刻がある場合のみ自動削除
                     if (data.end && nowTime >= data.end) {
                         listRef.child(child.key).remove();
                         return;
                     }
-                    // 開始・終了両方ある場合のみ自動Active
                     if (data.start && data.end) {
                         const isScheduled = (nowTime >= data.start && nowTime < data.end);
                         if (isScheduled && !data.active) {
@@ -126,6 +137,7 @@
             });
         }, 1000);
 
+        // 表示同期
         listRef.on('value', (snapshot) => {
             const listEl = document.getElementById('list');
             const curTitle = document.getElementById('current-title');
@@ -142,9 +154,7 @@
                     curRange.innerText = (data.start && data.end) ? `${data.start} - ${data.end}` : "FREE";
                     anyActive = true;
                 }
-
                 const timeDisplay = (data.start && data.end) ? `${data.start}-${data.end}` : `---`;
-
                 li.innerHTML = `
                     <div class="time-col">${timeDisplay}</div>
                     <div class="title-col">${data.title}</div>
@@ -170,11 +180,14 @@
             const end = document.getElementById('endTime').value;
             const title = document.getElementById('songInput').value;
             if (!title) return alert("内容を入力してください");
-            // 片方だけ入力されている場合は時間指定なしとして扱う（または両方必須にするロジックも可）
+            
+            // 片方だけの場合は時間なしとして登録
             const finalStart = (start && end) ? start : "";
             const finalEnd = (start && end) ? end : "";
             
             listRef.push({ start: finalStart, end: finalEnd, title, active: false });
+            
+            // 入力欄のみリセット（時間はそのまま連続入力に使えるようにするか、消すか。今回は消します）
             document.getElementById('songInput').value = '';
             document.getElementById('startTime').value = '';
             document.getElementById('endTime').value = '';
