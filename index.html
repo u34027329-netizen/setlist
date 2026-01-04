@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Setlist Pro - No Auto-Delete</title>
+    <title>Setlist Pro - Flexible Edition</title>
     <style>
         :root { --accent-color: rgba(255, 71, 87, 0.7); --text-color: #ffffff; }
         [data-mode="obs"] { background: transparent !important; }
@@ -17,20 +17,21 @@
         #current-range { font-size: 0.7em; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; margin-top: 5px; display: inline-block; }
 
         ul { list-style: none; padding: 10px; margin: 0; }
-        li { display: flex; align-items: center; padding: 10px; margin-bottom: 6px; border-radius: 6px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); transition: 0.3s; }
-        li.active { background: var(--accent-color) !important; border: 1px solid rgba(255, 255, 255, 0.4); }
-        li.expired { opacity: 0.25; filter: grayscale(0.8); } /* 終了しても消さず、薄くするだけ */
+        li { display: flex; align-items: center; padding: 12px; margin-bottom: 6px; border-radius: 6px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); transition: 0.2s; cursor: pointer; }
+        li.active { background: var(--accent-color) !important; border: 1px solid rgba(255, 255, 255, 0.4); transform: scale(1.02); }
+        li.expired { opacity: 0.3; filter: grayscale(0.8); }
         
-        .time-col { font-size: 0.65em; width: 95px; opacity: 0.8; }
-        .title-col { flex-grow: 1; font-size: 0.9em; font-weight: bold; }
-        .del-btn { cursor: pointer; padding: 5px; color: #ff4757; font-weight: bold; }
+        .time-col { font-size: 0.65em; width: 90px; opacity: 0.8; font-weight: bold; }
+        .title-col { flex-grow: 1; font-size: 0.95em; font-weight: bold; }
+        .del-btn { cursor: pointer; padding: 0 5px; color: #ff4757; font-weight: bold; font-size: 18px; }
 
         #controls { margin-top: 20px; background: #fff; padding: 20px; border-radius: 10px; color: #333; width: 340px; box-sizing: border-box; }
         .input-group { margin-bottom: 12px; }
-        label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 4px; }
+        label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 4px; color: #666; }
         input[type="datetime-local"], input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
         input[type="range"] { width: 100%; }
-        .btn-add { width: 100%; background: #ff4757; color: #fff; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .btn-add { width: 100%; background: #ff4757; color: #fff; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .info-text { font-size: 10px; color: #999; margin-bottom: 8px; }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
@@ -47,23 +48,29 @@
 
     <div id="controls">
         <div class="input-group">
-            <label>ボックスの不透明度</label>
+            <label>不透明度</label>
             <input type="range" id="opacitySlider" min="0" max="100" value="20">
         </div>
+        
+        <hr style="border:0; border-top:1px solid #eee; margin:15px 0">
+
         <div class="input-group">
-            <label>開始日時</label>
+            <label>内容（必須）</label>
+            <input type="text" id="songInput" placeholder="例：雑談、歌枠など">
+        </div>
+
+        <div class="info-text">※時間は空欄でも追加できます（手動切り替え用）</div>
+        <div class="input-group">
+            <label>開始日時（任意）</label>
             <input type="datetime-local" id="startDT">
         </div>
         <div class="input-group">
-            <label>終了日時</label>
+            <label>終了日時（任意）</label>
             <input type="datetime-local" id="endDT">
         </div>
-        <div class="input-group">
-            <label>内容</label>
-            <input type="text" id="songInput" placeholder="曲名やコーナー名">
-        </div>
+
         <button class="btn-add" onclick="addSchedule()">リストに追加</button>
-        <button onclick="clearAll()" style="width:100%; background:none; border:none; color:#ccc; font-size:10px; margin-top:15px; cursor:pointer;">データを全消去（リセット）</button>
+        <button onclick="clearAll()" style="width:100%; background:none; border:none; color:#ccc; font-size:10px; margin-top:15px; cursor:pointer;">全データをリセット</button>
     </div>
 
     <script>
@@ -91,70 +98,93 @@
         });
         document.getElementById('opacitySlider').oninput = (e) => settingsRef.update({ opacity: e.target.value });
 
-        // 初期時刻をセット (現在時刻)
-        window.onload = () => {
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            const currentStr = now.toISOString().slice(0, 16);
-            document.getElementById('startDT').value = currentStr;
-            document.getElementById('endDT').value = currentStr;
-        };
-
+        // 追加機能
         function addSchedule() {
             const title = document.getElementById('songInput').value;
             const startStr = document.getElementById('startDT').value;
             const endStr = document.getElementById('endDT').value;
             
-            if (!title || !startStr || !endStr) return;
+            if (!title) { alert("内容を入力してください"); return; }
 
-            // 数値としてのタイムスタンプで保存 (Java Calendar的)
-            const startTime = new Date(startStr).getTime();
-            const endTime = new Date(endStr).getTime();
+            // 時間があればミリ秒に、なければ null
+            const startTime = startStr ? new Date(startStr).getTime() : null;
+            const endTime = endStr ? new Date(endStr).getTime() : null;
 
-            listRef.push({ title, startTime, endTime });
+            listRef.push({ title, startTime, endTime, manualActive: false });
+            
             document.getElementById('songInput').value = '';
+            document.getElementById('startDT').value = '';
+            document.getElementById('endDT').value = '';
         }
 
-        // 表示・判定ループ
+        // 表示・判定
         listRef.on('value', snapshot => {
             const listEl = document.getElementById('list');
             listEl.innerHTML = '';
-            let anyActive = false;
+            let currentActiveItem = null;
             const now = Date.now();
 
             snapshot.forEach(child => {
                 const data = child.val();
                 const li = document.createElement('li');
                 
-                // 状態判定
-                const isOngoing = now >= data.startTime && now < data.endTime;
-                const isPast = now >= data.endTime;
+                // 進行中判定ロジック
+                let isActive = false;
+                if (data.manualActive) {
+                    isActive = true; // 手動クリック優先
+                } else if (data.startTime && data.endTime) {
+                    if (now >= data.startTime && now < data.endTime) {
+                        isActive = true; // 時間指定がある場合の自動判定
+                    }
+                }
 
-                if (isPast) li.classList.add('expired');
-                
-                if (isOngoing) {
+                if (isActive) {
                     li.classList.add('active');
-                    document.getElementById('current-title').innerText = data.title;
-                    document.getElementById('current-range').innerText = formatTime(data.startTime) + " 〜 " + formatTime(data.endTime);
-                    anyActive = true;
+                    currentActiveItem = data;
+                }
+
+                // 終了済み（時間指定ありの場合のみ）
+                if (data.endTime && now >= data.endTime) {
+                    li.classList.add('expired');
+                }
+
+                // 時間表示の作成
+                let timeHtml = "FREE";
+                if (data.startTime && data.endTime) {
+                    timeHtml = `${formatTime(data.startTime, true)}<br>〜${formatTime(data.endTime, true)}`;
                 }
 
                 li.innerHTML = `
-                    <div class="time-col">${formatTime(data.startTime, true)}<br>〜${formatTime(data.endTime, true)}</div>
+                    <div class="time-col">${timeHtml}</div>
                     <div class="title-col">${data.title}</div>
                     <div class="del-btn" onclick="event.stopPropagation(); listRef.child('${child.key}').remove();">×</div>
                 `;
 
+                // クリックで手動アクティブ化
+                li.onclick = () => {
+                    const updates = {};
+                    snapshot.forEach(c => {
+                        updates[c.key + '/manualActive'] = (c.key === child.key);
+                    });
+                    listRef.update(updates);
+                };
+
                 listEl.appendChild(li);
             });
 
-            if (!anyActive) {
+            // メイン表示の更新
+            if (currentActiveItem) {
+                document.getElementById('current-title').innerText = currentActiveItem.title;
+                document.getElementById('current-range').innerText = currentActiveItem.startTime ? 
+                    formatTime(currentActiveItem.startTime) + " 〜 " + formatTime(currentActiveItem.endTime) : "MANUAL MODE";
+            } else {
                 document.getElementById('current-title').innerText = "待機中...";
                 document.getElementById('current-range').innerText = "READY";
             }
         });
 
         function formatTime(ms, short = false) {
+            if (!ms) return "";
             const d = new Date(ms);
             const dateStr = `${d.getMonth()+1}/${d.getDate()}`;
             const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
@@ -162,6 +192,10 @@
         }
 
         function clearAll() { if(confirm("全て消去しますか？")) listRef.remove(); }
+        
+        // 1秒ごとに自動判定を更新
+        setInterval(() => { listRef.once('value', () => {}); }, 1000);
     </script>
 </body>
 </html>
+
