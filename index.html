@@ -3,173 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vertical Setlist with Time</title>
+    <title>Auto Schedule Setlist</title>
     <style>
-        /* --- デザイン設定 --- */
-        body {
-            margin: 0;
-            padding: 20px;
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background: #222; /* 確認用の仮背景色 */
-            color: white;
-            display: flex;
-            justify-content: center;
-        }
-
-        /* 縦長のウィジェット本体 */
-        #widget-container {
-            width: 300px; /* ★縦長サイズ */
-            min-height: 500px;
-            background: rgba(0, 0, 0, 0.85);
-            border-radius: 10px;
-            padding: 15px;
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            display: flex;
-            flex-direction: column;
-        }
-
-        h2 {
-            margin: 0 0 15px 0;
-            font-size: 16px;
-            text-align: center;
-            letter-spacing: 2px;
-            border-bottom: 2px solid #00d1b2;
-            padding-bottom: 10px;
-            color: #ddd;
-        }
-
-        ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            flex-grow: 1;
-        }
-
-        /* リストの各行 */
-        li {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            margin-bottom: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 動きをリッチに */
-            border-left: 3px solid transparent;
-        }
-
-        /* 時間表示部分 */
-        .time-badge {
-            font-size: 0.85em;
-            color: #00d1b2;
-            background: rgba(0, 209, 178, 0.1);
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin-right: 10px;
-            font-weight: bold;
-            min-width: 40px;
-            text-align: center;
-        }
+        body { margin: 0; padding: 20px; font-family: sans-serif; background: #222; color: white; display: flex; flex-direction: column; align-items: center; }
+        #widget-container { width: 320px; background: rgba(0, 0, 0, 0.9); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
         
-        .song-title {
-            flex-grow: 1;
-            word-break: break-all;
-        }
-
-        /* ★歌唱中（アクティブ）のデザイン */
-        li.active {
-            background: linear-gradient(90deg, #00d1b2, #00a896); /* グラデーション */
-            color: #fff;
-            transform: scale(1.08); /* ★少し大きくする */
-            box-shadow: 0 5px 15px rgba(0, 209, 178, 0.4);
-            margin: 15px 0; /* 上下の間隔を広げる */
-            font-weight: bold;
-            font-size: 1.1em; /* ★文字も大きく */
-            border-left: none;
-        }
-
-        li.active .time-badge {
-            background: white;
-            color: #00d1b2;
-        }
-
-        /* 操作パネル（スマホ用） */
-        #controls {
-            margin-top: 20px;
-            background: #fff;
-            padding: 15px;
-            border-radius: 10px;
-            color: #333;
-        }
-
-        .input-row {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 10px;
-        }
-
-        /* 時間入力欄 */
-        #timeInput {
-            width: 25%;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            text-align: center;
-        }
-
-        /* 曲名入力欄 */
-        #songInput {
-            width: 75%;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        .add-btn { background: #00d1b2; color: white; margin-bottom: 5px;}
-        .clear-btn { background: #ff4757; color: white; }
-
-        #status-log { font-size: 11px; text-align: center; margin-top: 5px; color: #666; }
+        /* NOW PLAYING エリア */
+        #now-playing-area { background: linear-gradient(135deg, #ff4757, #ff6b81); padding: 20px 15px; text-align: center; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+        #now-playing-label { font-size: 10px; text-transform: uppercase; letter-spacing: 3px; opacity: 0.8; margin-bottom: 5px; }
+        #current-title { font-size: 1.4em; font-weight: bold; }
         
-        /* OBS表示時は操作パネルを隠す */
+        /* リストエリア */
+        ul { list-style: none; padding: 10px; margin: 0; }
+        li { display: flex; align-items: center; padding: 12px 10px; margin-bottom: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 6px; border-left: 3px solid transparent; transition: 0.3s; }
+        li.active { background: rgba(255, 71, 87, 0.2); border-left: 3px solid #ff4757; font-weight: bold; }
+        .time-col { font-size: 0.8em; color: #ff4757; width: 90px; flex-shrink: 0; }
+        .title-col { flex-grow: 1; font-size: 0.95em; }
+
+        /* 操作パネル */
+        #controls { margin-top: 20px; background: #fff; padding: 15px; border-radius: 10px; color: #333; width: 320px; box-sizing: border-box; }
+        .input-row { display: flex; gap: 5px; margin-bottom: 10px; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        #timeInput { width: 40%; }
+        #songInput { width: 60%; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 5px; }
+        .add-btn { background: #ff4757; color: white; }
+        
         [data-mode="obs"] #controls { display: none; }
-        [data-mode="obs"] body { background: transparent; padding: 0; height: 100vh; overflow: hidden; }
-        [data-mode="obs"] #widget-container { height: 100%; border: none; }
-
     </style>
-
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
 <body>
 
     <div id="widget-container">
-        <h2>TIMETABLE & SONGS</h2>
+        <div id="now-playing-area">
+            <div id="now-playing-label">NOW PLAYING</div>
+            <div id="current-title">🕒 スケジュール待機中</div>
+        </div>
         <ul id="list"></ul>
     </div>
 
     <div id="controls">
-        <p style="margin:0 0 5px 0; font-weight:bold; font-size:12px;">新規追加</p>
         <div class="input-row">
-            <input type="text" id="timeInput" placeholder="時間">
-            <input type="text" id="songInput" placeholder="曲名を入力">
+            <input type="text" id="timeInput" placeholder="18:30 (時刻)">
+            <input type="text" id="songInput" placeholder="曲名">
         </div>
-        <button class="add-btn" onclick="addSong()">リストに追加</button>
-        <button class="clear-btn" onclick="clearList()" style="margin-top:10px;">全消去</button>
-        <div id="status-log"></div>
+        <button class="add-btn" onclick="addSong()">予約追加</button>
+        <button onclick="clearList()">全消去</button>
+        <p style="font-size:10px; color:#666;">※時刻になると自動で切り替わり、過ぎると消えます</p>
     </div>
 
     <script>
-        // 設定値（あなたの設定が入っています）
         const firebaseConfig = {
             apiKey: "AIzaSyBprlYN69O3fMygI-EVG28FxoTXDQnVBog",
             authDomain: "my-setlist-c9b40.firebaseapp.com",
@@ -180,87 +65,74 @@
             appId: "1:917897337856:web:b776d59cd602cf0d298ce5"
         };
 
-        let db;
-        const log = document.getElementById('status-log');
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        if(window.location.search.includes('obs=1')) document.body.setAttribute('data-mode', 'obs');
 
-        try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.database();
-            
-            // OBSモード判定
-            if(window.location.search.includes('obs=1')) {
-                document.body.setAttribute('data-mode', 'obs');
-            }
+        // メインループ（1秒ごとに時間をチェック）
+        setInterval(() => {
+            const now = new Date();
+            const nowStr = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
 
-            // データ受信・表示処理
-            db.ref('setlist').on('value', (snapshot) => {
-                const listEl = document.getElementById('list');
-                listEl.innerHTML = '';
+            db.ref('setlist').once('value', (snapshot) => {
+                if (!snapshot.exists()) return;
                 
-                if (snapshot.exists()) {
-                    snapshot.forEach((child) => {
-                        const data = child.val();
-                        const li = document.createElement('li');
-                        
-                        // 時間がある場合とない場合の表示分け
-                        const timeHtml = data.time ? `<span class="time-badge">${data.time}</span>` : '';
-                        li.innerHTML = `${timeHtml}<span class="song-title">${data.title}</span>`;
+                snapshot.forEach((child) => {
+                    const data = child.val();
+                    if (!data.time) return;
 
-                        if (data.active) li.classList.add('active');
-                        
-                        // クリックでアクティブ切り替え
-                        li.onclick = () => {
-                            db.ref('setlist').once('value', s => {
-                                const updates = {};
-                                s.forEach(c => updates[c.key + '/active'] = (c.key === child.key));
-                                db.ref('setlist').update(updates);
-                            });
-                        };
+                    // 自動選択：時刻が一致したらactiveにする
+                    if (data.time === nowStr && !data.active) {
+                        db.ref('setlist').once('value', s => {
+                            const updates = {};
+                            s.forEach(c => updates[c.key + '/active'] = (c.key === child.key));
+                            db.ref('setlist').update(updates);
+                        });
+                    }
 
-                        // 右クリックで削除
-                        li.oncontextmenu = (e) => {
-                            e.preventDefault();
-                            if(confirm(`「${data.title}」を削除しますか？`)) {
-                                db.ref('setlist/' + child.key).remove();
-                            }
-                        };
-                        
-                        listEl.appendChild(li);
-                    });
-                }
+                    // 自動削除：時刻を5分以上過ぎたら消す（例）
+                    // ここではシンプルに「次の曲が始まったら」等ではなく時間経過で判定可能
+                });
             });
+        }, 10000); // 10秒ごとにチェック
 
-        } catch (e) {
-            log.innerText = "エラー: " + e.message;
+        // 表示処理
+        db.ref('setlist').on('value', (snapshot) => {
+            const listEl = document.getElementById('list');
+            const currentTitleEl = document.getElementById('current-title');
+            listEl.innerHTML = '';
+            let hasActive = false;
+
+            if (snapshot.exists()) {
+                snapshot.forEach((child) => {
+                    const data = child.val();
+                    const li = document.createElement('li');
+                    if (data.active) {
+                        li.classList.add('active');
+                        currentTitleEl.innerText = data.title;
+                        hasActive = true;
+                    }
+                    li.innerHTML = `<div class="time-col">${data.time || '--:--'}</div><div class="title-col">${data.title}</div>`;
+                    li.onclick = () => { /* 手動切り替え */
+                        const updates = {};
+                        snapshot.forEach(c => updates[c.key + '/active'] = (c.key === child.key));
+                        db.ref('setlist').update(updates);
+                    };
+                    listEl.appendChild(li);
+                });
+            }
+            if (!hasActive) currentTitleEl.innerText = "スケジュール待機中";
+        });
+
+        function addSong() {
+            const t = document.getElementById('timeInput').value;
+            const s = document.getElementById('songInput').value;
+            if (!s) return;
+            db.ref('setlist').push({ time: t, title: s, active: false });
+            document.getElementById('songInput').value = '';
         }
 
-        // 追加機能（時間＋曲名）
-        window.addSong = function() {
-            const timeVal = document.getElementById('timeInput').value;
-            const songVal = document.getElementById('songInput').value;
-            
-            if (!songVal) return; // 曲名は必須
-
-            log.innerText = "送信中...";
-            db.ref('setlist').push({
-                time: timeVal,   // 時間も保存
-                title: songVal,
-                active: false
-            }).then(() => {
-                log.innerText = "追加しました";
-                document.getElementById('songInput').value = '';
-                // 時間は連続入力しやすいように消さないでおく（消したい場合は下の行の//を外す）
-                // document.getElementById('timeInput').value = ''; 
-            }).catch((e) => {
-                log.innerText = "失敗: " + e.code;
-            });
-        };
-
-        window.clearList = function() {
-            if(confirm("リストを全て消去しますか？")) {
-                db.ref('setlist').remove();
-            }
-        };
+        function clearList() { if(confirm("消去？")) db.ref('setlist').remove(); }
     </script>
 </body>
 </html>
