@@ -3,32 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auto Schedule Setlist</title>
+    <title>Hybrid Auto/Manual Setlist</title>
     <style>
-        body { margin: 0; padding: 20px; font-family: sans-serif; background: #222; color: white; display: flex; flex-direction: column; align-items: center; }
-        #widget-container { width: 320px; background: rgba(0, 0, 0, 0.9); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+        :root { --accent: #ff4757; --bg: rgba(0, 0, 0, 0.95); }
+        body { margin: 0; padding: 20px; font-family: 'Helvetica Neue', Arial, sans-serif; background: #222; color: white; display: flex; flex-direction: column; align-items: center; }
         
-        /* NOW PLAYING エリア */
-        #now-playing-area { background: linear-gradient(135deg, #ff4757, #ff6b81); padding: 20px 15px; text-align: center; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+        #widget-container { width: 320px; background: var(--bg); border-radius: 15px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        
+        /* 上部NOW PLAYINGエリア */
+        #now-playing-area { background: linear-gradient(135deg, var(--accent), #ff6b81); padding: 20px 15px; text-align: center; transition: 0.5s; }
         #now-playing-label { font-size: 10px; text-transform: uppercase; letter-spacing: 3px; opacity: 0.8; margin-bottom: 5px; }
-        #current-title { font-size: 1.4em; font-weight: bold; }
-        
-        /* リストエリア */
+        #current-title { font-size: 1.4em; font-weight: bold; word-break: break-all; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        #current-range { font-size: 0.8em; background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 4px; margin-top: 5px; display: inline-block; }
+
+        h2.list-header { font-size: 11px; text-align: center; color: #777; margin: 15px 0 5px; letter-spacing: 2px; }
         ul { list-style: none; padding: 10px; margin: 0; }
-        li { display: flex; align-items: center; padding: 12px 10px; margin-bottom: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 6px; border-left: 3px solid transparent; transition: 0.3s; }
-        li.active { background: rgba(255, 71, 87, 0.2); border-left: 3px solid #ff4757; font-weight: bold; }
-        .time-col { font-size: 0.8em; color: #ff4757; width: 90px; flex-shrink: 0; }
-        .title-col { flex-grow: 1; font-size: 0.95em; }
+        
+        /* リストのデザイン */
+        li { display: flex; align-items: center; padding: 12px 10px; margin-bottom: 8px; background: rgba(255,255,255,0.05); border-radius: 8px; transition: 0.3s; cursor: pointer; border-left: 4px solid transparent; }
+        
+        /* ★選択中の強調デザイン */
+        li.active { 
+            background: rgba(255, 71, 87, 0.25); 
+            border-left: 4px solid var(--accent);
+            transform: scale(1.02);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        li.active .title-col { color: white; font-weight: bold; }
+        li.active .time-col { color: var(--accent); font-weight: bold; }
+
+        .time-col { font-size: 0.75em; color: #999; width: 85px; flex-shrink: 0; }
+        .title-col { flex-grow: 1; font-size: 0.95em; color: #ddd; word-break: break-all; }
 
         /* 操作パネル */
-        #controls { margin-top: 20px; background: #fff; padding: 15px; border-radius: 10px; color: #333; width: 320px; box-sizing: border-box; }
-        .input-row { display: flex; gap: 5px; margin-bottom: 10px; }
-        input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
-        #timeInput { width: 40%; }
-        #songInput { width: 60%; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 5px; }
-        .add-btn { background: #ff4757; color: white; }
-        
+        #controls { margin-top: 20px; background: white; padding: 15px; border-radius: 12px; color: #333; width: 320px; box-sizing: border-box; }
+        .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+        .time-inputs { display: flex; gap: 5px; align-items: center; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .time-inputs input { width: 45%; text-align: center; }
+        #songInput { width: 100%; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-bottom: 8px; transition: 0.2s; }
+        .add-btn { background: var(--accent); color: white; }
+        .add-btn:active { transform: scale(0.98); }
+        .clear-btn { background: #eee; color: #888; }
+
         [data-mode="obs"] #controls { display: none; }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -38,20 +56,25 @@
 
     <div id="widget-container">
         <div id="now-playing-area">
-            <div id="now-playing-label">NOW PLAYING</div>
-            <div id="current-title">🕒 スケジュール待機中</div>
+            <div id="now-playing-label">Now Playing</div>
+            <div id="current-title">待機中...</div>
+            <div id="current-range">--:-- - --:--</div>
         </div>
+        <h2 class="list-header">SCHEDULE</h2>
         <ul id="list"></ul>
     </div>
 
     <div id="controls">
-        <div class="input-row">
-            <input type="text" id="timeInput" placeholder="18:30 (時刻)">
-            <input type="text" id="songInput" placeholder="曲名">
+        <div class="input-group">
+            <div class="time-inputs">
+                <input type="text" id="startTime" placeholder="18:00">
+                <span>~</span>
+                <input type="text" id="endTime" placeholder="18:30">
+            </div>
+            <input type="text" id="songInput" placeholder="曲名またはコーナー名">
         </div>
-        <button class="add-btn" onclick="addSong()">予約追加</button>
-        <button onclick="clearList()">全消去</button>
-        <p style="font-size:10px; color:#666;">※時刻になると自動で切り替わり、過ぎると消えます</p>
+        <button class="add-btn" onclick="addSchedule()">予約を追加</button>
+        <button class="clear-btn" onclick="clearAll()">全消去</button>
     </div>
 
     <script>
@@ -67,72 +90,115 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        const listRef = db.ref('setlist');
+
         if(window.location.search.includes('obs=1')) document.body.setAttribute('data-mode', 'obs');
 
-        // メインループ（1秒ごとに時間をチェック）
+        // 定期チェックループ
         setInterval(() => {
             const now = new Date();
-            const nowStr = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+            const nowTime = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
 
-            db.ref('setlist').once('value', (snapshot) => {
+            listRef.once('value', (snapshot) => {
                 if (!snapshot.exists()) return;
-                
+                const updates = {};
+                let needUpdate = false;
+
                 snapshot.forEach((child) => {
                     const data = child.val();
-                    if (!data.time) return;
+                    const id = child.key;
 
-                    // 自動選択：時刻が一致したらactiveにする
-                    if (data.time === nowStr && !data.active) {
-                        db.ref('setlist').once('value', s => {
-                            const updates = {};
-                            s.forEach(c => updates[c.key + '/active'] = (c.key === child.key));
-                            db.ref('setlist').update(updates);
-                        });
+                    // 1. 自動消去
+                    if (data.end && nowTime >= data.end) {
+                        listRef.child(id).remove();
+                        return;
                     }
 
-                    // 自動削除：時刻を5分以上過ぎたら消す（例）
-                    // ここではシンプルに「次の曲が始まったら」等ではなく時間経過で判定可能
+                    // 2. 自動切替
+                    if (data.start && data.end) {
+                        const isScheduledTime = (nowTime >= data.start && nowTime < data.end);
+                        // スケジュール時間内かつ、現在他にアクティブな曲がない場合に自動でActiveにする
+                        // (手動操作を優先するため、一度Activeになったら時間外になるまで維持)
+                        if (isScheduledTime && !data.active) {
+                            // 他にActiveがあるか確認
+                            let alreadyActive = false;
+                            snapshot.forEach(c => { if(c.val().active) alreadyActive = true; });
+                            
+                            if(!alreadyActive) {
+                                updates[id + '/active'] = true;
+                                needUpdate = true;
+                            }
+                        }
+                    }
                 });
+                if (needUpdate) listRef.update(updates);
             });
-        }, 10000); // 10秒ごとにチェック
+        }, 1000);
 
-        // 表示処理
-        db.ref('setlist').on('value', (snapshot) => {
+        // リスト表示と同期
+        listRef.on('value', (snapshot) => {
             const listEl = document.getElementById('list');
-            const currentTitleEl = document.getElementById('current-title');
+            const curTitle = document.getElementById('current-title');
+            const curRange = document.getElementById('current-range');
             listEl.innerHTML = '';
-            let hasActive = false;
+            let anyActive = false;
 
-            if (snapshot.exists()) {
-                snapshot.forEach((child) => {
-                    const data = child.val();
-                    const li = document.createElement('li');
-                    if (data.active) {
-                        li.classList.add('active');
-                        currentTitleEl.innerText = data.title;
-                        hasActive = true;
-                    }
-                    li.innerHTML = `<div class="time-col">${data.time || '--:--'}</div><div class="title-col">${data.title}</div>`;
-                    li.onclick = () => { /* 手動切り替え */
-                        const updates = {};
-                        snapshot.forEach(c => updates[c.key + '/active'] = (c.key === child.key));
-                        db.ref('setlist').update(updates);
-                    };
-                    listEl.appendChild(li);
-                });
+            snapshot.forEach((child) => {
+                const data = child.val();
+                const li = document.createElement('li');
+                
+                if (data.active) {
+                    li.classList.add('active');
+                    curTitle.innerText = data.title;
+                    curRange.innerText = `${data.start} - ${data.end}`;
+                    anyActive = true;
+                }
+
+                li.innerHTML = `
+                    <div class="time-col">${data.start}-${data.end}</div>
+                    <div class="title-col">${data.title}</div>
+                `;
+
+                // ★クリックで「手動」切り替え
+                li.onclick = () => {
+                    const up = {};
+                    snapshot.forEach(c => {
+                        up[c.key + '/active'] = (c.key === child.key);
+                    });
+                    listRef.update(up);
+                };
+
+                // 右クリックで削除
+                li.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    if(confirm("この項目を削除しますか？")) listRef.child(child.key).remove();
+                };
+
+                listEl.appendChild(li);
+            });
+
+            if (!anyActive) {
+                curTitle.innerText = "待機中...";
+                curRange.innerText = "--:-- - --:--";
             }
-            if (!hasActive) currentTitleEl.innerText = "スケジュール待機中";
         });
 
-        function addSong() {
-            const t = document.getElementById('timeInput').value;
-            const s = document.getElementById('songInput').value;
-            if (!s) return;
-            db.ref('setlist').push({ time: t, title: s, active: false });
+        function addSchedule() {
+            const start = document.getElementById('startTime').value;
+            const end = document.getElementById('endTime').value;
+            const title = document.getElementById('songInput').value;
+            if (!start || !end || !title) return alert("全部入力してください");
+            
+            listRef.push({
+                start: start.replace('：', ':'),
+                end: end.replace('：', ':'),
+                title: title,
+                active: false
+            });
             document.getElementById('songInput').value = '';
         }
 
-        function clearList() { if(confirm("消去？")) db.ref('setlist').remove(); }
+        function clearAll() { if(confirm("リストを全消去しますか？")) listRef.remove(); }
     </script>
 </body>
 </html>
