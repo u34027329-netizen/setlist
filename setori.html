@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Setlist for OBS</title>
+    <style>
+        :root {
+            --accent-color: #00d1b2; /* 歌唱中のハイライト色 */
+            --bg-glass: rgba(0, 0, 0, 0.8); /* リストの背景色 */
+            --text-color: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: transparent;
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #widget-container {
+            width: 320px;
+            background: var(--bg-glass);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        h2 {
+            margin: 0 0 15px 0;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: #aaa;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 10px;
+        }
+
+        ul { list-style: none; padding: 0; margin: 0; }
+
+        li {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            word-break: break-all;
+        }
+
+        li.active {
+            background: var(--accent-color);
+            color: #000;
+            box-shadow: 0 0 15px var(--accent-color);
+            transform: scale(1.05);
+        }
+
+        #controls {
+            margin-top: 30px;
+            width: 320px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 15px;
+            color: #333;
+            box-sizing: border-box;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            box-sizing: border-box;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .btn-group { display: flex; gap: 8px; }
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .add-btn { background: var(--accent-color); color: white; }
+        .clear-btn { background: #ff4757; color: white; }
+
+        /* OBSモード(?obs=1)の時に操作パネルを隠す */
+        [data-mode="obs"] #controls { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="widget-container">
+    <h2>Setlist</h2>
+    <ul id="list"></ul>
+</div>
+
+<div id="controls">
+    <p style="margin:0 0 10px 0; font-weight:bold;">Remote Control</p>
+    <input type="text" id="songInput" placeholder="曲名を入力">
+    <div class="btn-group">
+        <button class="add-btn" id="addBtn">追加</button>
+        <button class="clear-btn" id="clearBtn">全消去</button>
+    </div>
+    <p style="font-size: 11px; color: #666; margin-top: 10px; text-align: center;">
+        タップ：歌唱中に設定 / 右クリック：削除
+    </p>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, onValue, push, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    // あなたのFirebase設定を反映済み
+    const firebaseConfig = {
+        apiKey: "AIzaSyBprlYN69O3fMygI-EVG28FxoTXDQnVBog",
+        authDomain: "my-setlist-c9b40.firebaseapp.com",
+        databaseURL: "https://my-set
